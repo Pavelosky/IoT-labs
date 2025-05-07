@@ -7,7 +7,7 @@ ESP8266WebServer server(80);
 
 // The WiFi details 
 const char* ssid = "TechLabNet";
-const char* password =  "BC6V6DE9A8T9"; 
+const char* password =  "XXXX"; 
 
 // Initialise the switch pin
 // The variable to store the switch value
