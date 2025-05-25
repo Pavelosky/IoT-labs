@@ -1,5 +1,8 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <DHT.h>
+
+#define DHTTYPE DHT11
 
 
 // Set the PORT for the web server
@@ -7,7 +10,7 @@ ESP8266WebServer server(80);
 
 // The WiFi details 
 const char* ssid = "TechLabNet";
-const char* password =  "XXXX"; 
+const char* password =  "BC6V6DE9A8T9"; 
 
 // Initialise the switch pin
 // The variable to store the switch value
@@ -34,6 +37,17 @@ const int buzzer_pin = D5;
 const int red_led_pin = D2;
 const int green_led_pin = D3;
 const int blue_led_pin = D4;
+
+// Initialize the termometer
+const int temp_hum_pin = D6;
+
+// Temp and Humidity variables
+int temp = 0;
+int humidity = 0;
+
+// Initialize the DHT11 component
+DHT dht(temp_hum_pin, DHT11);
+
 
 // put your setup code here, to run once:
 void setup() {
@@ -77,6 +91,8 @@ void setup() {
   server.begin(); //Start the server
   Serial.println("Server listening");
 
+  dht.begin();
+
 }
 
 // put your main code here, to run repeatedly:
@@ -99,6 +115,9 @@ void loop() {
     
     // Signal critical temperatures
     // trigBuzzer();
+
+    // REad the temp and humidity
+    readTempHum();
     
   }else{
     // Signal temperature status (OFF)
@@ -106,6 +125,18 @@ void loop() {
     // No sound, fridge is off
     noTone(buzzer_pin);
   }
+}
+
+void readTempHum(){
+  
+  temp = dht.readTemperature();
+  humidity = dht.readHumidity();
+  
+  Serial.println("temperature: ");
+  Serial.println(temp);
+  Serial.print("\t");
+  Serial.println("humidity: ");
+  Serial.println(humidity);
 }
 
 // Utility function to check whether the fridge is ON
@@ -187,6 +218,12 @@ void get_index() {
   html += "<div> <p> <strong> The temperature preference is: ";
   html += fridgeTemperature();
   html +="</strong> degrees. </p>";
+  html += "<div> <p> <strong> The temperature reading is: ";
+  html += temp;
+  html +="</strong> degrees. </p>";
+  html += "<div> <p> <strong> The humidity reading is: ";
+  html += humidity;
+  html +="</strong> % </p>";
   html += "<p> <strong> Buzzer Component ";
   html +="</strong> </p> </div>";
   
@@ -215,4 +252,7 @@ void setBuzzerStatus(){
      noTone(buzzer_pin);
     }
   }
+  String reply = "Tone state: ";
+  reply.concat(query_string);
+  server.send(200, "text/html", reply);
 }
