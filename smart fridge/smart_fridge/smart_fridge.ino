@@ -1,9 +1,9 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <DHT.h>
+#include <LiquidCrystal_I2C.h>
 
 #define DHTTYPE DHT11
-
 
 // Set the PORT for the web server
 ESP8266WebServer server(80);
@@ -12,14 +12,27 @@ ESP8266WebServer server(80);
 const char* ssid = "TechLabNet";
 const char* password =  "BC6V6DE9A8T9"; 
 
+// Initialise the buzzer pin
+const int buzzer_pin = D5;
+
+// Initialise the RGB pins
+const int red_led_pin = D7;
+const int green_led_pin = D3;
+const int blue_led_pin = D4;
+
+// Initialize the termometer
+const int temp_hum_pin = D6;
+
 // Initialise the switch pin
-// The variable to store the switch value
-const int switch_pin = D1;
-int switch_value;
+const int switch_pin = D0;
 
 // Initialise the potentiometer pin
-// The value coming from the potentiometer
 const int potentiometer_pin  = A0;
+
+// The variable to store the switch value
+int switch_value;
+
+// The value coming from the potentiometer
 int poteValue;
 
 // Initialise the minimum and maximum temperature of the fridge
@@ -30,16 +43,6 @@ int maxTemp = 6;
 int criticalMinTemp = 2;
 int criticalMaxTemp = 4;
 
-// Initialise the buzzer pin
-const int buzzer_pin = D5;
-
-// Initialise the RGB pins
-const int red_led_pin = D2;
-const int green_led_pin = D3;
-const int blue_led_pin = D4;
-
-// Initialize the termometer
-const int temp_hum_pin = D6;
 
 // Temp and Humidity variables
 int temp = 0;
@@ -48,6 +51,8 @@ int humidity = 0;
 // Initialize the DHT11 component
 DHT dht(temp_hum_pin, DHT11);
 
+// Initialize the LCD display
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // put your setup code here, to run once:
 void setup() {
@@ -75,6 +80,7 @@ void setup() {
   // Start the serial to debug the values
   Serial.begin(9600);
 
+
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {  
       delay(500);
@@ -92,6 +98,11 @@ void setup() {
   Serial.println("Server listening");
 
   dht.begin();
+
+  // Initialize the LCD display
+  lcd.init();
+  lcd.backlight(); // Turn on the backlight
+
 
 }
 
@@ -118,6 +129,9 @@ void loop() {
 
     // REad the temp and humidity
     readTempHum();
+
+    // Print the temperature and humidity on the LCD screen
+    displayData();
     
   }else{
     // Signal temperature status (OFF)
@@ -125,6 +139,8 @@ void loop() {
     // No sound, fridge is off
     noTone(buzzer_pin);
   }
+
+
 }
 
 void readTempHum(){
@@ -255,4 +271,19 @@ void setBuzzerStatus(){
   String reply = "Tone state: ";
   reply.concat(query_string);
   server.send(200, "text/html", reply);
+}
+
+void displayData(){
+  
+  // Print the temperature and humidity on the LCD
+  lcd.setCursor(0, 0); // Set cursor to first row
+  lcd.print("Temp: ");
+  lcd.print(temp);
+  lcd.print("C");
+  
+  lcd.setCursor(0, 1); // Set cursor to second row
+  lcd.print("Hum: ");
+  lcd.print(humidity);
+  lcd.print("%");
+  
 }
