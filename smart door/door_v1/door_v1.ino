@@ -5,13 +5,15 @@
 ESP8266WebServer server(80);
 
 // The WiFi details 
-const char* ssid = "VRV9517066BD7";
-const char* password =  "Ac463qXbMXa6";
+const char* ssid = "TechLabNet";
+const char* password =  "BC6V6DE9A8T9";
 
 
 // Trigger Pin of Ultrasonic Sensor and  Echo Pin of Ultrasonic Sensor
 const int trigPin = D4; 
 const int echoPin = D8;
+
+const int ledPin = D0; // LED Pin to indicate the door status
 
 // Duration and distance variables
 long duration = 0;
@@ -42,8 +44,10 @@ void setup() {
 
   server.begin(); //Start the server
   Serial.println("Server listening");
+  
+  pinMode(ledPin, OUTPUT);
+  analogWrite(ledPin, LOW);
 }
-
 // put your main code here, to run repeatedly:
 void loop() {
 
@@ -55,6 +59,9 @@ void loop() {
 
   // Prints the distance on the Serial Monitor
   distanceCentimeter();
+
+  // Control the LED based on the distance
+  ledControl();
   
 }
 
@@ -98,4 +105,21 @@ void get_index() {
   //Print a welcoming message on the index page
   server.send(200, "text/html", html);
   
+}
+
+void ledControl(){
+  
+  int mappedValue;
+  // Map the distance to a value between 0 and 255
+  // mappedValue = map(distance, 19, 20, 0, 255);
+  // analogWrite(ledPin, mappedValue); // Write the mapped value to the LED pin
+
+  // If the distance is less than 20 cm, turn on led and print messaage
+  if (distance < 20) {
+    Serial.println("Door is closed");
+    digitalWrite(ledPin, LOW); // Turn on the LED
+  } else {
+    Serial.println("Door is open");
+    digitalWrite(ledPin, HIGH); // Turn off the LED
+  }
 }
