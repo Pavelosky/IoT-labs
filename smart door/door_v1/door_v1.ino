@@ -1,8 +1,11 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <ArduinoJson.h>
+#include <Servo.h>
 
 // Set the PORT for the web server
 ESP8266WebServer server(80);
+Servo myservo;
 
 // The WiFi details 
 const char* ssid = "TechLabNet";
@@ -17,36 +20,45 @@ const int ledPin = D0; // LED Pin to indicate the door status
 
 // Duration and distance variables
 long duration = 0;
-int distance= 0;
+int distance = 0;
+
+// Rotation angle var
+int angle = 0;
+
+// Allocate the JSON document
+// Allows to allocated memory for the JSON document
+DynamicJsonDocument doc(1024);
 
 // put your setup code here, to run once:
 void setup() {
 
   //Connect to the WiFi network
-  WiFi.begin(ssid, password);  
+  WiFi.begin(ssid, password);
   
+  
+  // Sonic Sensor Pin Setup
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
   pinMode(echoPin, INPUT); // Sets the echoPin as an Input
   
   Serial.begin(9600); // Starts the serial communication
 
-  // Wait for connection
+  // Starting server for the dashboard site
   while (WiFi.status() != WL_CONNECTED) {  
       delay(500);
-      Serial.println("Waiting to connect...");
+      Serial.println("Waiting to connect...");  // Wait for connection
   }
-
-  //Print the board IP address
-  Serial.print("IP address: ");
+  Serial.print("IP address: "); //Print the board IP address
   Serial.println(WiFi.localIP());  
-
   server.on("/", get_index); // Get the index page on root route 
-
+  server.on("/json", get_json); // Get the JSON data on /json route
   server.begin(); //Start the server
   Serial.println("Server listening");
   
+  // Led pin setup
   pinMode(ledPin, OUTPUT);
   analogWrite(ledPin, LOW);
+
+  myservo.attach(D3);  
 }
 // put your main code here, to run repeatedly:
 void loop() {
@@ -62,6 +74,8 @@ void loop() {
 
   // Control the LED based on the distance
   ledControl();
+
+  servoMovement(angle);
   
 }
 
@@ -84,6 +98,8 @@ void distanceCentimeter() {
 
   // Calculating the distance in cm
   distance = (duration * 0.034)/2;
+
+  angle = map(distance,0,100,0,180);
 
   // Prints distance to Serial Monitor
   Serial.print(distance);
@@ -122,4 +138,45 @@ void ledControl(){
     Serial.println("Door is open");
     digitalWrite(ledPin, HIGH); // Turn off the LED
   }
+}
+
+void jsonDistanceSensor() {
+  
+  //Add JSON request data 
+  doc["Content-Type"] = "application/json";
+  doc["Status"] = 200;
+
+  // Add distance data to the JSON document
+  JsonObject distanceSensor = doc.createNestedObject("Sensor");
+  distanceSensor["sensorName"] = "Distance Sensor";
+
+  // Add the distance value to the JSON document
+  JsonArray pins = distanceSensor.createNestedArray("sensorPins");
+  pins.add(trigPin);
+  pins.add(echoPin);
+  distanceSensor["sensorValue"] = distance;
+}
+
+void get_json() {
+  
+  // Call the function to get the distance sensor data
+  jsonDistanceSensor();
+
+  // Serialize the JSON document to a string
+  String jsonString;
+  serializeJson(doc, jsonString);
+
+  // Send the JSON response
+  server.send(200, "application/json", jsonString);
+  
+  // Clear the JSON document for next request
+  // doc.clear();
+}
+
+void servoMovement(int angle){
+
+  //Sets the servo position to 0 angle - door closed
+  myservo.write(angle);
+  
+
 }
